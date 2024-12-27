@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSRS Wordle</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .menu button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 18px;
+            background-color: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .menu button:hover {
+            background-color: #555;
+        }
+
+        .game {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+            padding: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, 50px);
+            grid-gap: 10px;
+            margin: 20px 0;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            text-transform: uppercase;
+            background-color: #222;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .cell.correct {
+            background-color: #588157;
+        }
+
+        .cell.partial {
+            background-color: #ffc300;
+        }
+
+        .cell.wrong {
+            background-color: #555;
+        }
+
+        .keyboard {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .key {
+            padding: 10px;
+            text-align: center;
+            background-color: #333;
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .key:hover {
+            background-color: #555;
+        }
+
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .buttons button {
+            padding: 10px 20px;
+            font-size: 18px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #next {
+            background-color: #333;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        #next:enabled {
+            background-color: orange;
+            cursor: pointer;
+        }
+
+        #quit {
+            background-color: red;
+            color: white;
+        }
+
+        #tip {
+            background-color: blue;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+        }
+
+        .timer {
+            font-size: 18px;
+            color: #fff;
+        }
+
+        .lose-message {
+            font-size: 20px;
+            color: red;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .tip-message {
+            font-size: 18px;
+            color: yellow;
+            text-align: center;
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, 0);
+            background-color: rgb(0 0 0 / 54%);
+            padding: 17px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .audio-icon {
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            filter: brightness(0) invert(1);
+        }
+
+        .menu input {
+            padding: 10px;
+            font-size: 18px;
+            margin: 10px;
+            width: 300px;
+        }
+
+        .menu label {
+            font-size: 18px;
+            color: white;
+        }
+
+        .highscores {
+            margin-top: 20px;
+            font-size: 16px;
+            color: white;
+        }
+
+        .highscores h3 {
+            margin: 0;
+            padding: 0;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .highscores ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .highscores li {
+            margin: 5px 0;
+            text-align: center;
+        }
+
+        .highscores .score-entry {
+            display: flex;
+            justify-content: space-between;
+            width: 200px;
+            margin: 0 auto;
+        }
+
+        .highscore-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .highscore-overlay h2 {
+            margin-bottom: 20px;
+        }
+
+        .highscore-overlay ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .highscore-overlay li {
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .highscore-overlay button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu">
+        <h1>Old School RuneScape Wordle</h1>
+        <p>Let's test your knowledge, try to find the words within 6 tries.</p>
+        <label for="playerName">Enter your name:</label>
+        <input type="text" id="playerName" placeholder="Your name here">
+        <button id="play">Play</button>
+    </div>
+
+    <div class="game">
+        <h1>OSRS Wordle</h1>
+        <div class="header">
+            <div id="score">Score: 0</div>
+            <div class="timer" id="timer">Time: 00:00</div>
+            <img id="musicIcon" class="audio-icon" src="mute-icon.png" alt="Mute/Unmute Music">
+        </div>
+
+        <div class="grid" id="grid"></div>
+        <div class="keyboard" id="keyboard"></div>
+        <div class="buttons">
+            <button id="next" disabled>Next</button>
+            <button id="tip">Tip</button>
+            <button id="quit">Stop</button>
+        </div>
+        <div class="tip-message" id="tipMessage">Tip displays here.</div>
+        <div class="lose-message" id="loseMessage" style="display: none;"></div>
+        <div class="highscores" id="highscores">
+            <h3>Top 5 Highscores</h3>
+            <ul id="highscoreList"></ul>
+        </div>
+    </div>
+
+    <div class="highscore-overlay" id="highscoreOverlay">
+        <h2>Top 10 Highscores</h2>
+        <ul id="highscoreFullList"></ul>
+        <button id="restart">Restart</button>
+    </div>
+
+    <audio id="music" src="themesong.mp3" loop></audio>
+
+
+    <script>
+        var words = ["runite", "guthix", "dragon", "chisel", "cannon", "attack", "defend", "karils", "skulls", "bishop", "sickle", "fletch", "scarab", "spirit", "ferret", "herbiv", "rubies", "zenyte", "salmon", "karamb"];
+        var hints = {
+            "runite": "A high-level ore",
+            "guthix": "One of the gods",
+            "dragon": "A common enemy type",
+            "chisel": "A tool used in crafting",
+            "cannon": "Used in combat for multi-target attacks",
+            "attack": "A combat skill",
+            "defend": "Related to combat styles and Defense skill",
+            "karils": "One of the six brothers",
+            "skulls": "PVP",
+            "bishop": "A piece in the Gnome Restaurant chess puzzle",
+            "sickle": "A tool used in the Nature Spirit quest",
+            "fletch": "A skill",
+            "scarab": "A type of desert enemy",
+            "spirit": "A type of pet or familiar in Summoning",
+            "ferret": "An animal encountered in the quest 'Hunt for Red Raktuber'",
+            "herbiv": "A hunter creature yielding herbs",
+            "rubies": "A gemstone used in crafting",
+            "zenyte": "A rare gem used in high-level crafting",
+            "salmon": "A fish that can be cooked and eaten",
+            "karamb": "A type of fish used in cooking (short version)"
+        };
+
+        var currentWordIndex = 0;
+        var currentWord = "";
+        var guessedWord = "";
+        var maxAttempts = 6;
+        var currentAttempt = 0;
+        var score = 0;
+        var wordGuessedCorrectly = false;
+        var timerInterval;
+        var startTime;
+        var playerName = "";
+
+        var menu = document.querySelector(".menu");
+        var game = document.querySelector(".game");
+        var grid = document.getElementById("grid");
+        var keyboard = document.getElementById("keyboard");
+        var nextButton = document.getElementById("next");
+        var quitButton = document.getElementById("quit");
+        var tipButton = document.getElementById("tip");
+        var scoreElement = document.getElementById("score");
+        var timerElement = document.getElementById("timer");
+        var tipMessage = document.getElementById("tipMessage");
+        var loseMessage = document.getElementById("loseMessage");
+        var highscoreList = document.getElementById("highscoreList");
+        var highscoreOverlay = document.getElementById("highscoreOverlay");
+        var highscoreFullList = document.getElementById("highscoreFullList");
+        var restartButton = document.getElementById("restart");
+
+        var musicIcon = document.getElementById("musicIcon");
+        var music = document.getElementById("music");
+
+        var musicMuted = true;
+
+        music.volume = 0.5; // Set default volume for music
+
+        function toggleMusic() {
+            musicMuted = !musicMuted;
+            if (musicMuted) {
+                music.pause();
+                musicIcon.src = "mute-icon.png";
+            } else {
+                music.play();
+                musicIcon.src = "unmute-icon.png";
+            }
+        }
+
+        musicIcon.addEventListener("click", toggleMusic);
+
+        function initializeGame() {
+            playerName = document.getElementById("playerName").value.trim();
+            if (!playerName) {
+                alert("Please enter your name to play.");
+                return;
+            }
+            shuffleArray(words);
+            currentWordIndex = 0;
+            score = 0;
+            updateScore();
+            updateHighscoreBoard();
+            startGame();
+        }
+
+        function shuffleArray(array) {
+            for (var i = array.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+        }
+
+        function updateScore() {
+            scoreElement.textContent = `Player: ${playerName} | Score: ${score}`;
+        }
+
+        function updateHighscoreBoard() {
+            var highscores = JSON.parse(localStorage.getItem("highscores")) || [];
+            highscoreList.innerHTML = "";
+            highscores.slice(0, 5).forEach(scoreEntry => {
+                var li = document.createElement("li");
+                li.innerHTML = `<div class='score-entry'><span>${scoreEntry.name}</span><span>${scoreEntry.score}</span></div>`;
+                highscoreList.appendChild(li);
+            });
+        }
+
+        function saveHighscore() {
+            var highscores = JSON.parse(localStorage.getItem("highscores")) || [];
+            highscores.push({ name: playerName, score }); // Voeg huidige speler toe
+            highscores.sort((a, b) => b.score - a.score); // Sorteer op hoogste score
+            localStorage.setItem("highscores", JSON.stringify(highscores)); // Sla op in localStorage
+        }
+
+
+        function showFullHighscoreBoard() {
+            var highscores = JSON.parse(localStorage.getItem("highscores")) || [];
+            highscoreFullList.innerHTML = "";
+            highscores.slice(0, 10).forEach((scoreEntry, index) => {
+                var li = document.createElement("li");
+                li.textContent = `${index + 1}. ${scoreEntry.name}: ${scoreEntry.score}`;
+                highscoreFullList.appendChild(li);
+            });
+            highscoreOverlay.style.display = "flex";
+        }
+
+        function startGame() {
+            menu.style.display = "none";
+            game.style.display = "flex";
+            loseMessage.style.display = "none";
+            tipMessage.style.display = "none";
+            currentWord = words[currentWordIndex];
+            currentAttempt = 0;
+            guessedWord = "";
+            wordGuessedCorrectly = false;
+            generateGrid();
+            generateKeyboard();
+            startTimer();
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(function () {
+                var elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+                var minutes = String(Math.floor(elapsedTime / 60)).padStart(2, '0');
+                var seconds = String(elapsedTime % 60).padStart(2, '0');
+                timerElement.textContent = "Time: " + minutes + ":" + seconds;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        function generateGrid() {
+            grid.innerHTML = "";
+            for (var i = 0; i < maxAttempts; i++) {
+                for (var j = 0; j < currentWord.length; j++) {
+                    var cell = document.createElement("div");
+                    cell.classList.add("cell");
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        function generateKeyboard() {
+            var rows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+            keyboard.innerHTML = "";
+            for (var i = 0; i < rows.length; i++) {
+                var rowDiv = document.createElement("div");
+                rowDiv.classList.add("keyboard-row");
+                for (var j = 0; j < rows[i].length; j++) {
+                    var keyButton = document.createElement("button");
+                    keyButton.classList.add("key");
+                    keyButton.textContent = rows[i][j];
+                    keyButton.addEventListener("click", (function (key) {
+                        return function () {
+                            handleKeyPress(key.toLowerCase());
+                        };
+                    })(rows[i][j]));
+                    keyButton.setAttribute('data-key', rows[i][j].toLowerCase());
+                    keyButton.addEventListener('mousedown', function(e) {
+                        e.preventDefault(); // Voorkom active state
+                    });
+                    rowDiv.appendChild(keyButton);
+                }
+                keyboard.appendChild(rowDiv);
+            }
+        }
+
+        function handleKeyPress(key) {
+            if (guessedWord.length < currentWord.length) {
+                guessedWord += key;
+                updateGrid();
+            }
+        }
+
+        function updateGrid() {
+            var cells = grid.querySelectorAll(".cell[data-row='" + currentAttempt + "']");
+            for (var i = 0; i < cells.length; i++) {
+                cells[i].textContent = guessedWord[i] ? guessedWord[i].toUpperCase() : "";
+            }
+        }
+
+        function updateKeyboardColors(guessedWord, currentWord) {
+            guessedWord.split('').forEach((letter, index) => {
+                var keyButton = document.querySelector(`button[data-key='${letter}']`);
+                if (keyButton) {
+                    if (currentWord[index] === letter) {
+                        keyButton.style.backgroundColor = "#588157"; // Groen
+                    } else if (currentWord.includes(letter)) {
+                        keyButton.style.backgroundColor = "#ffc300"; // Geel
+                    } else {
+                        keyButton.style.backgroundColor = "#555"; // Grijs
+                    }
+                }
+            });
+        }
+
+        function resetKeyboardColors() {
+            var keys = keyboard.querySelectorAll(".key");
+            keys.forEach(key => {
+                key.style.backgroundColor = "#333";
+            });
+        }
+
+        function checkGuess() {
+            if (guessedWord.length !== currentWord.length || wordGuessedCorrectly) {
+                return;
+            }
+
+            var cells = grid.querySelectorAll(".cell[data-row='" + currentAttempt + "']");
+            var correctCount = 0;
+
+            for (var i = 0; i < guessedWord.length; i++) {
+                if (guessedWord[i] === currentWord[i]) {
+                    cells[i].classList.add("correct");
+                    correctCount++;
+                } else if (currentWord.includes(guessedWord[i])) {
+                    cells[i].classList.add("partial");
+                } else {
+                    cells[i].classList.add("wrong");
+                }
+            }
+
+            updateKeyboardColors(guessedWord, currentWord);
+
+            if (correctCount === currentWord.length) {
+                score++;
+                updateScore();
+                wordGuessedCorrectly = true;
+                nextButton.disabled = false;
+            } else {
+                currentAttempt++;
+                guessedWord = "";
+                if (currentAttempt === maxAttempts) {
+                    endGame();
+                }
+            }
+        }
+
+        function endGame() {
+            saveHighscore(); // Sla de highscore op
+            updateHighscoreBoard(); // Update direct het huidige top 5 scoreboard
+            showFullHighscoreBoard(); // Toon de top 10
+            loseMessage.textContent = `You lost! The correct word was: ${currentWord}`; // Laat correct woord zien
+            loseMessage.style.display = "block";
+            stopTimer(); // Stop de timer
+        }
+
+
+        nextButton.addEventListener("click", function () {
+            resetKeyboardColors();
+            nextWord();
+        });
+
+
+        restartButton.addEventListener("click", function () {
+            highscoreOverlay.style.display = "none";
+            menu.style.display = "flex";
+            game.style.display = "none";
+        });
+
+        function nextWord() {
+            resetKeyboardColors();
+            currentWordIndex++;
+            if (currentWordIndex >= words.length) {
+                alert("You guessed everything correctly! Score: " + score);
+                stopTimer();
+                menu.style.display = "flex";
+                game.style.display = "none";
+                return;
+            }
+            currentWord = words[currentWordIndex];
+            currentAttempt = 0;
+            guessedWord = "";
+            wordGuessedCorrectly = false;
+            nextButton.disabled = true;
+            generateGrid();
+        }
+
+        document.getElementById("play").addEventListener("click", initializeGame);
+
+        document.addEventListener("keydown", function(event) {
+            var key = event.key.toLowerCase();
+            if (/^[a-z]$/.test(key)) {
+                handleKeyPress(key);
+            } else if (event.key === "Backspace") {
+                guessedWord = guessedWord.slice(0, -1);
+                updateGrid();
+            } else if (event.key === "Enter") {
+                if (wordGuessedCorrectly) {
+                    nextWord();
+                } else {
+                    checkGuess();
+                }
+            }
+        });
+
+        tipButton.addEventListener("click", function () {
+            if (hints[currentWord]) {
+                tipMessage.textContent = hints[currentWord];
+                tipMessage.style.display = "block";
+                setTimeout(() => {
+                    tipMessage.style.display = "none";
+                }, 5000);
+            }
+        });
+
+        tipButton.addEventListener("mousedown", function(e) {
+            e.preventDefault(); // Voorkom active state
+        });
+
+        quitButton.addEventListener("click", function () {
+            stopTimer();
+            menu.style.display = "flex";
+            game.style.display = "none";
+        });
+    </script>
+</body>
+</html>
+
+
