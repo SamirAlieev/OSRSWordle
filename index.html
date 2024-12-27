@@ -308,6 +308,45 @@
 
 
     <script>
+        const API_URL = "676ecf01ad19ca34f8e1c0ab"; // Vervang met jouw JSONBin URL
+        const API_KEY = "$2a$10$Xi/7FH1eyZjuknPsA13x9uTEThGHyof5zbQHXNtFN8d/ky5FaTcDi"; // Vervang met jouw JSONBin Secret Key
+
+        async function fetchHighscores() {
+            try {
+                const response = await fetch(API_URL, {
+                    headers: {
+                        'X-Master-Key': API_KEY
+                    }
+                });
+                const data = await response.json();
+                return data.record.highscores.sort((a, b) => b.score - a.score).slice(0, 10); // Sorteer op score, hoogste eerst
+            } catch (error) {
+                console.error("Error fetching highscores:", error);
+                return [];
+            }
+        }
+
+        async function saveHighscoreOnline(name, score) {
+            try {
+                const currentHighscores = await fetchHighscores();
+                currentHighscores.push({ name, score });
+                currentHighscores.sort((a, b) => b.score - a.score);
+                const response = await fetch(API_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify({ highscores: currentHighscores })
+                });
+                if (!response.ok) {
+                    throw new Error("Failed to save highscore");
+                }
+            } catch (error) {
+                console.error("Error saving highscore:", error);
+            }
+        }
+
         var words = ["runite", "guthix", "dragon", "chisel", "cannon", "attack", 
         "karils", "bishop", "sickle", "prayer", "scarab", "zenyte", "salmon", "slayer", 
         "wyvern", "shield", "zulrah", "kraken", "spirit", "tekton", "xarpus", "kephri", 
@@ -423,11 +462,12 @@
             scoreElement.textContent = `Player: ${playerName} | Score: ${score}`;
         }
 
-        function updateHighscoreBoard() {
-            var highscores = JSON.parse(localStorage.getItem("highscores")) || [];
+        // Update het highscoreboard
+        async function updateHighscoreBoard() {
+            const highscores = await fetchHighscores();
             highscoreList.innerHTML = "";
-            highscores.slice(0, 5).forEach(scoreEntry => {
-                var li = document.createElement("li");
+            highscores.forEach(scoreEntry => {
+                const li = document.createElement("li");
                 li.innerHTML = `<div class='score-entry'><span>${scoreEntry.name}</span><span>${scoreEntry.score}</span></div>`;
                 highscoreList.appendChild(li);
             });
@@ -441,11 +481,12 @@
         }
 
 
-        function showFullHighscoreBoard() {
-            var highscores = JSON.parse(localStorage.getItem("highscores")) || [];
+        // Toon de volledige top 10 lijst
+        async function showFullHighscoreBoard() {
+            const highscores = await fetchHighscores();
             highscoreFullList.innerHTML = "";
-            highscores.slice(0, 10).forEach((scoreEntry, index) => {
-                var li = document.createElement("li");
+            highscores.forEach((scoreEntry, index) => {
+                const li = document.createElement("li");
                 li.textContent = `${index + 1}. ${scoreEntry.name}: ${scoreEntry.score}`;
                 highscoreFullList.appendChild(li);
             });
