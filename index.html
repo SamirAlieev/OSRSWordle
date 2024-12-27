@@ -318,17 +318,24 @@
                         'X-Master-Key': API_KEY
                     }
                 });
+                if (!response.ok) {
+                    console.error("Error fetching highscores:", response.statusText);
+                    return [];
+                }
                 const data = await response.json();
-                return data.record.highscores.sort((a, b) => b.score - a.score).slice(0, 10); // Sorteer op score, hoogste eerst
+                console.log("Fetched highscores:", data);
+                return data.record.highscores.sort((a, b) => b.score - a.score).slice(0, 10);
             } catch (error) {
                 console.error("Error fetching highscores:", error);
                 return [];
             }
         }
 
+
         async function saveHighscoreOnline(name, score) {
             try {
                 const currentHighscores = await fetchHighscores();
+                console.log("Current highscores before save:", currentHighscores);
                 currentHighscores.push({ name, score });
                 currentHighscores.sort((a, b) => b.score - a.score);
                 const response = await fetch(API_URL, {
@@ -340,12 +347,15 @@
                     body: JSON.stringify({ highscores: currentHighscores })
                 });
                 if (!response.ok) {
-                    throw new Error("Failed to save highscore");
+                    console.error("Failed to save highscore:", response.statusText);
+                } else {
+                    console.log("Highscore saved successfully!");
                 }
             } catch (error) {
                 console.error("Error saving highscore:", error);
             }
         }
+
 
         var words = ["runite", "guthix", "dragon", "chisel", "cannon", "attack", 
         "karils", "bishop", "sickle", "prayer", "scarab", "zenyte", "salmon", "slayer", 
@@ -465,6 +475,7 @@
         // Update het highscoreboard
         async function updateHighscoreBoard() {
             const highscores = await fetchHighscores();
+            console.log("Updating scoreboard with highscores:", highscores);
             highscoreList.innerHTML = "";
             highscores.forEach(scoreEntry => {
                 const li = document.createElement("li");
@@ -472,6 +483,7 @@
                 highscoreList.appendChild(li);
             });
         }
+
 
         function saveHighscore() {
             var highscores = JSON.parse(localStorage.getItem("highscores")) || [];
