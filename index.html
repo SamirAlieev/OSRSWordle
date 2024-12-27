@@ -324,12 +324,13 @@
                 }
                 const data = await response.json();
                 console.log("Fetched highscores:", data);
-                return data.record.highscores.sort((a, b) => b.score - a.score).slice(0, 10);
+                return data.record.highscores || []; // Zorg dat highscores altijd een array is
             } catch (error) {
                 console.error("Error fetching highscores:", error);
-                return [];
+                return []; // Voorkom loops door altijd een lege array te retourneren
             }
         }
+
 
 
         async function saveHighscoreOnline(name, score) {
@@ -474,8 +475,10 @@
 
         // Update het highscoreboard
         async function updateHighscoreBoard() {
+            console.log("Updating highscore board..."); // Controleer hoe vaak dit wordt aangeroepen
             const highscores = await fetchHighscores();
-            console.log("Updating scoreboard with highscores:", highscores);
+            console.log("Fetched highscores:", highscores);
+
             highscoreList.innerHTML = "";
             highscores.forEach(scoreEntry => {
                 const li = document.createElement("li");
@@ -642,14 +645,15 @@
             }
         }
 
-        function endGame() {
-            saveHighscore(); // Sla de highscore op
-            updateHighscoreBoard(); // Update direct het huidige top 5 scoreboard
-            showFullHighscoreBoard(); // Toon de top 10
-            loseMessage.textContent = `You lost! The correct word was: ${currentWord}`; // Laat correct woord zien
+        async function endGame() {
+            await saveHighscoreOnline(playerName, score); // Sla score op
+            await updateHighscoreBoard(); // Werk top 5 bij
+            showFullHighscoreBoard(); // Toon top 10 scherm
+            loseMessage.textContent = `You lost! The correct word was: ${currentWord}`;
             loseMessage.style.display = "block";
-            stopTimer(); // Stop de timer
+            stopTimer();
         }
+
 
 
         nextButton.addEventListener("click", function () {
